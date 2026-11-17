@@ -42,7 +42,7 @@
 </style>
 </head>
 <body>
-<header><h1>✂️ Potong <small>v1.1</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
+<header><h1>✂️ Potong <small>v1.2</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
 <div class="wrap">
 
   <!-- BERANDA -->
@@ -982,7 +982,14 @@ function enhance(x, w, h, bw) {
     return Promise.resolve(new File([doc.output('blob')], namaDasar() + '.pdf', { type: 'application/pdf' }));
   }
   function bagikan(files) {
-    if (navigator.canShare && navigator.canShare({ files: files })) {
+    // nama dokumen ikut dikirim sebagai teks -> WhatsApp/Telegram menjadikannya keterangan (caption) foto
+    var nama = String($('namaDok').value || '').trim();
+    var data = { files: files };
+    if (nama) { data.title = nama; data.text = nama; }
+    if (navigator.canShare && navigator.canShare(data)) {
+      return navigator.share(data).catch(function (e) { if (e && e.name !== 'AbortError') throw e; });
+    }
+    if (navigator.canShare && navigator.canShare({ files: files })) {   // HP yang tidak mendukung teks + file
       return navigator.share({ files: files }).catch(function (e) { if (e && e.name !== 'AbortError') throw e; });
     }
     toast('HP ini tidak mendukung Bagikan langsung — file disimpan, bagikan dari folder Download');
