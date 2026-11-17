@@ -42,7 +42,7 @@
 </style>
 </head>
 <body>
-<header><h1>✂️ Potong <small>v1.0</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
+<header><h1>✂️ Potong <small>v1.1</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
 <div class="wrap">
 
   <!-- BERANDA -->
@@ -58,6 +58,10 @@
     <div class="card hide" id="cardPages">
       <b id="pgJudul">Halaman</b>
       <div class="pages" id="pages"></div>
+      <label class="muted" for="namaDok" style="display:block;margin-top:12px">Nama dokumen (opsional)</label>
+      <input id="namaDok" maxlength="80" autocomplete="off" placeholder="mis. Bukti bayar CC BCA Nov 2026"
+        style="width:100%;font-size:16px;padding:11px;border:1px solid #cbd5e1;border-radius:10px;margin-top:4px">
+      <div class="muted" id="namaInfo" style="margin-top:4px"></div>
       <div class="row"><button class="btn blue" id="btnShareJpg">📤 Bagikan JPG</button><button class="btn blue" id="btnSharePdf">📤 Bagikan PDF</button></div>
       <div class="row"><button class="btn grey sm" id="btnSaveJpg">💾 Simpan JPG</button><button class="btn grey sm" id="btnSavePdf">💾 Simpan PDF</button></div>
       <button class="btn red sm" id="btnSelesai">🗑 Selesai (hapus semua)</button>
@@ -941,12 +945,23 @@ function enhance(x, w, h, bw) {
     versi++; siap = {};
     $('cardPages').classList.toggle('hide', !pages.length);
     $('pgJudul').textContent = pages.length + ' halaman';
+    infoNama();
     $('pages').innerHTML = pages.map(function (p, i) { return '<div class="pg"><img src="' + p.thumb + '"><b>' + (i + 1) + '</b><button data-del="' + i + '">✕</button></div>'; }).join('');
   }
   $('pages').onclick = function (e) { var b = e.target.closest('[data-del]'); if (!b) return; pages.splice(+b.getAttribute('data-del'), 1); renderPages(); };
 
   // ---------- bagikan / simpan ----------
-  function namaDasar() { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return 'Scan_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()); }
+  function namaOtomatis() { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return 'Scan_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()); }
+  // Nama dari kotak "Nama dokumen"; karakter yang tidak boleh di nama file diganti "-"
+  function namaDasar() {
+    var n = String($('namaDok').value || '').replace(/[\\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().replace(/^[.\-\s]+|[.\s]+$/g, '').slice(0, 80);
+    return n || namaOtomatis();
+  }
+  function infoNama() {
+    var n = namaDasar(), k = pages.length;
+    $('namaInfo').textContent = 'File: ' + (k > 1 ? n + '_1.jpg … ' + n + '_' + k + '.jpg  atau  ' + n + '.pdf' : n + '.jpg  atau  ' + n + '.pdf');
+  }
+  $('namaDok').addEventListener('input', function () { siap = {}; infoNama(); });
   function keBlob(c) { return new Promise(function (r) { c.toBlob(function (b) { r(b); }, 'image/jpeg', 0.9); }); }
   function fileJpg() {
     var dasar = namaDasar();
@@ -1005,7 +1020,7 @@ function enhance(x, w, h, bw) {
   $('btnSavePdf').onclick = function () { aksi('pdf', filePdf, simpan, 'Tersimpan di folder Download'); };
   $('btnSelesai').onclick = function () {
     if (pages.length && !confirm('Hapus semua halaman dari layar? (sudah dibagikan / disimpan?)')) return;
-    pages = []; renderPages(); siap = {}; toast('Bersih — tidak ada yang tersimpan');
+    pages = []; $('namaDok').value = ''; renderPages(); siap = {}; toast('Bersih — tidak ada yang tersimpan');
   };
   window.addEventListener('beforeunload', function (e) { if (pages.length) { e.preventDefault(); e.returnValue = ''; } });
 })();
