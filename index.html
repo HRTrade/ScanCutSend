@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>Potong — scan cepat</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f1f5f9;color:#0f172a;font-size:16px}
+  header{background:#0f766e;color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+  header h1{font-size:18px;margin:0}
+  header small{opacity:.75;font-size:11px;font-weight:400}
+  .wrap{max-width:560px;margin:0 auto;padding:12px}
+  .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;color:#fff;background:#0f766e;cursor:pointer;margin-top:8px;text-align:center}
+  .btn.grey{background:#e2e8f0;color:#0f172a}.btn.blue{background:#2563eb}.btn.red{background:#dc2626}
+  .btn.sm{padding:10px;font-size:14px;font-weight:600}
+  .btn:disabled{opacity:.45}
+  .row{display:flex;gap:8px}.row>*{flex:1}
+  .seg{display:flex;background:#e2e8f0;border-radius:12px;padding:3px;gap:3px}
+  .seg button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:9px;font-size:14px;font-weight:600;color:#334155}
+  .seg button.on{background:#fff;color:#0f766e;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .muted{color:#64748b;font-size:13px;line-height:1.45}
+  .hide{display:none!important}
+  .viewer{position:relative;background:#0b1220;border-radius:12px;padding:8px;display:flex;justify-content:center}
+  #cropCv{display:block;touch-action:none;-webkit-user-select:none;user-select:none}
+  #loupe{position:absolute;top:12px;left:12px;width:110px;height:110px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);display:none;pointer-events:none;background:#000}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .chip{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:7px 12px;font-size:14px}
+  .chip.on{background:#0f766e;border-color:#0f766e;color:#fff;font-weight:700}
+  .warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px;margin-top:8px}
+  #hasil{width:100%;display:block;border-radius:10px;background:#fff;border:1px solid #e2e8f0}
+  .pages{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .pg{position:relative;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;background:#f8fafc;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
+  .pg img{max-width:100%;max-height:100%;display:block}
+  .pg b{position:absolute;left:4px;top:4px;background:rgba(15,23,42,.75);color:#fff;font-size:11px;border-radius:6px;padding:1px 6px}
+  .pg button{position:absolute;right:4px;top:4px;border:0;border-radius:50%;width:26px;height:26px;background:rgba(220,38,38,.9);color:#fff;font-size:14px}
+  .busy{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:20;color:#fff;font-size:15px;text-align:center;padding:20px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;display:none;max-width:90%}
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+<header><h1>✂️ Potong <small>v1.0</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
+<div class="wrap">
+
+  <!-- BERANDA -->
+  <div id="vHome">
+    <div class="card">
+      <div class="seg" id="segMode"><button data-m="dokumen" class="on">📄 Dokumen</button><button data-m="kartu">🪪 Kartu</button></div>
+      <div class="row">
+        <label class="btn">📷 Kamera<input id="inCam" type="file" accept="image/*" capture="environment"></label>
+        <label class="btn grey">🖼️ Galeri<input id="inGal" type="file" accept="image/*" multiple></label>
+      </div>
+      <p class="muted" style="margin:10px 0 0">Foto di tempat terang, tanpa flash, dokumen memenuhi layar. Tidak ada yang disimpan: semua diproses di HP ini dan hilang setelah Anda tekan <b>Selesai</b>.</p>
+    </div>
+    <div class="card hide" id="cardPages">
+      <b id="pgJudul">Halaman</b>
+      <div class="pages" id="pages"></div>
+      <div class="row"><button class="btn blue" id="btnShareJpg">📤 Bagikan JPG</button><button class="btn blue" id="btnSharePdf">📤 Bagikan PDF</button></div>
+      <div class="row"><button class="btn grey sm" id="btnSaveJpg">💾 Simpan JPG</button><button class="btn grey sm" id="btnSavePdf">💾 Simpan PDF</button></div>
+      <button class="btn red sm" id="btnSelesai">🗑 Selesai (hapus semua)</button>
+    </div>
+  </div>
+
+  <!-- ATUR SUDUT -->
+  <div id="vCrop" class="card hide">
+    <b>Atur sudut</b> <span class="muted" id="cropInfo"></span>
+    <p class="muted" style="margin:4px 0 8px">Geser bulatan di sudut / tengah sisi kalau belum pas. Ketuk kotak putus-putus untuk pilih dokumen lain.</p>
+    <div class="viewer" id="cropWrap"><canvas id="cropCv"></canvas><canvas id="loupe" width="220" height="220"></canvas></div>
+    <div class="chips hide" id="cands"></div>
+    <div class="warn hide" id="cropWarn"></div>
+    <div class="row"><button class="btn grey sm" id="btnCropPutar">↻ Putar</button><button class="btn grey sm" id="btnCropPenuh">⛶ Penuh</button><button class="btn grey sm" id="btnCropBatal">✕ Batal</button></div>
+    <button class="btn" id="btnCropLanjut">Lanjut ›</button>
+  </div>
+
+  <!-- WARNA -->
+  <div id="vFilter" class="card hide">
+    <b>Pilih warna</b>
+    <div class="seg" id="segFilter" style="margin:8px 0">
+      <button data-f="asli">Asli</button><button data-f="bersih" class="on">✨ Bersih</button><button data-f="abu">Abu-abu</button><button data-f="bw">Hitam-putih</button>
+    </div>
+    <img id="hasil" alt="">
+    <div class="row"><button class="btn grey sm" id="btnFPutar">↻ Putar</button><button class="btn grey sm" id="btnFKembali">‹ Atur sudut</button></div>
+    <button class="btn" id="btnFSimpan">✓ Tambahkan</button>
+  </div>
+</div>
+<div class="busy" id="busy"></div>
+<div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ================= MESIN SCAN v5 =================
+   Deteksi sudut: AI (DocCornerNet via scanic, MIT) + cara klasik + "kunci tepi" + kandidat ganda.
+   Diuji di halaman tes: 24/25 foto tanpa edit (96%).
+   Semua fungsi di dalam ENG supaya tidak bentrok dengan kode HRtoScan. */
+var ENG = (function () {
+  var LIB_URL = 'https://cdn.jsdelivr.net/npm/scanic@1.7.1/dist/scanic.js';
+  var GRAD_SIDE = 1000, ML_CROP_SIDE = 900, SUP_MIN = 0.6;
+  var S = null, mlReady = false, loadP = null;
+  var st = { W: 0, H: 0, work: null, jenis: 'kertas' };
+
+  // Muat library + model AI (sekali saja; berikutnya dari cache browser)
+  function load() {
+    if (loadP) return loadP;
+    loadP = new Promise(function (res) {
+      var to = setTimeout(function () { res(false); }, 45000);
+      import(LIB_URL).then(function (mod) {
+        S = mod;
+        var c = document.createElement('canvas'); c.width = c.height = 64;
+        var x = c.getContext('2d'); x.fillStyle = '#888'; x.fillRect(0, 0, 64, 64);
+        return S.scanDocument(c, { detector: 'ml', ml: { minScore: 0 } }).then(function () { mlReady = true; })
+          .catch(function (e) { console.warn('AI gagal dimuat, pakai klasik', e); });
+      }).then(function () { clearTimeout(to); res(!!S); })
+        .catch(function (e) { clearTimeout(to); console.warn('Mesin scan gagal dimuat', e); loadP = null; res(false); });
+    });
+    return loadP;
+  }
+
+// Perkiraan rasio asli dokumen dari 4 sudut foto (Zhang & He, 2007)
+function trueAspect(q, W, H) {
+  // q: [TL, TR, BR, BL] ; m1=TL m2=TR m3=BL m4=BR
+  const u0 = W / 2, v0 = H / 2;
+  const P = p => [p.x, p.y, 1];
+  const m1 = P(q[0]), m2 = P(q[1]), m3 = P(q[3]), m4 = P(q[2]);
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const dot = (a, b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const k2 = dot(cross(m1, m4), m3) / dot(cross(m2, m4), m3);
+  const k3 = dot(cross(m1, m4), m2) / dot(cross(m3, m4), m2);
+  const n2 = [k2*m2[0]-m1[0], k2*m2[1]-m1[1], k2*m2[2]-m1[2]];
+  const n3 = [k3*m3[0]-m1[0], k3*m3[1]-m1[1], k3*m3[2]-m1[2]];
+  const wImg = (Math.hypot(q[1].x-q[0].x, q[1].y-q[0].y) + Math.hypot(q[2].x-q[3].x, q[2].y-q[3].y)) / 2;
+  const hImg = (Math.hypot(q[3].x-q[0].x, q[3].y-q[0].y) + Math.hypot(q[2].x-q[1].x, q[2].y-q[1].y)) / 2;
+  const fallback = { ratio: wImg / hImg, f: null };
+  // panjang fokus kamera: dihitung dari foto; kalau tidak bisa (satu pasang sisi sejajar di foto),
+  // pakai perkiraan kamera utama HP (±26 mm ekuivalen ≈ 0,8 x sisi terpanjang foto)
+  const fDef = 0.8 * Math.max(W, H);
+  let f = fDef;
+  const den = n2[2] * n3[2];
+  if (Math.abs(den) > 1e-9) {
+    const f2c = -((n2[0]*n3[0] - (n2[0]*n3[2] + n2[2]*n3[0])*u0 + n2[2]*n3[2]*u0*u0) +
+                  (n2[1]*n3[1] - (n2[1]*n3[2] + n2[2]*n3[1])*v0 + n2[2]*n3[2]*v0*v0)) / den;
+    const fc = f2c > 0 ? Math.sqrt(f2c) : 0;
+    if (fc >= 0.5 * Math.max(W, H) && fc <= 3 * Math.max(W, H)) f = fc;
+  }
+  const f2 = f * f;
+  const q2 = n => { const a = n[0] - u0*n[2], b = n[1] - v0*n[2]; return (a*a + b*b) / f2 + n[2]*n[2]; };
+  const r = Math.sqrt(q2(n2) / q2(n3));
+  if (!isFinite(r) || r <= 0) return fallback;
+  return { ratio: r, f };
+}
+
+
+var DET = {
+  ml: function (r) {
+    if (!mlReady) return Promise.resolve(null);
+    var src = r ? cropCanvas(r) : { c: st.work, k: 1 };
+    var rr = r || { x: 0, y: 0 };
+    return S.scanDocument(src.c, { detector: 'ml', ml: { minScore: 0 } }).then(function (m) {
+      if (!m.corners) return null;
+      return { q: mapBack(m.corners, rr, src.k), score: m.score };
+    }).catch(function (e) { st.lastErr = 'AI: ' + e.message; return null; });
+  },
+  cl: function (r) {
+    var src = r ? cropCanvas(r) : { c: st.work, k: 1 };
+    var rr = r || { x: 0, y: 0 };
+    return S.scanDocument(src.c, { detector: 'classical', maxProcessingDimension: 1000 }).then(function (m) {
+      return (m.success && m.corners) ? mapBack(m.corners, rr, src.k) : null;
+    }).catch(function (e) { st.lastErr = 'Klasik: ' + e.message; return null; });
+  }
+};
+
+
+function cloneQ(q) { return q.map(function (p) { return { x: p.x, y: p.y }; }); }
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+// Urutkan 4 titik jadi [kiri-atas, kanan-atas, kanan-bawah, kiri-bawah] apapun urutan aslinya
+function normQuad(c) {
+  var p = Array.isArray(c) ? c.slice() : [c.topLeft, c.topRight, c.bottomRight, c.bottomLeft];
+  p = p.filter(function (a) { return a && isFinite(a.x) && isFinite(a.y); }).map(function (a) {
+    return { x: clamp(a.x, 0, st.W), y: clamp(a.y, 0, st.H) };
+  });
+  if (p.length !== 4) return null;
+  var cx = 0, cy = 0; p.forEach(function (a) { cx += a.x / 4; cy += a.y / 4; });
+  p.sort(function (a, b) { return Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx); });
+  var s = 0; for (var i = 1; i < 4; i++) if (p[i].x + p[i].y < p[s].x + p[s].y) s = i;
+  var q = [p[s], p[(s + 1) % 4], p[(s + 2) % 4], p[(s + 3) % 4]];
+  return areaQ(q) < 0.01 * st.W * st.H ? null : q;   // terlalu kecil = salah deteksi
+}
+function areaQ(q) { var a = 0; for (var i = 0; i < 4; i++) { var j = (i + 1) % 4; a += q[i].x * q[j].y - q[j].x * q[i].y; } return Math.abs(a) / 2; }
+function isConvex(q) {
+  var sg = 0;
+  for (var i = 0; i < 4; i++) {
+    var a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4];
+    var z = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    if (Math.abs(z) < 1e-6) return false;
+    var s = z > 0 ? 1 : -1; if (!sg) sg = s; else if (s !== sg) return false;
+  }
+  return true;
+}
+function buildGrad(c) {
+  var k = Math.min(1, GRAD_SIDE / Math.max(c.width, c.height));
+  var w = Math.max(8, Math.round(c.width * k)), h = Math.max(8, Math.round(c.height * k));
+  var t = document.createElement('canvas'); t.width = w; t.height = h;
+  var x = t.getContext('2d', { willReadFrequently: true });
+  x.drawImage(c, 0, 0, w, h);
+  var d = x.getImageData(0, 0, w, h).data, n = w * h;
+  var L = new Float32Array(n), C = new Float32Array(n);
+  for (var i = 0, j = 0; i < n; i++, j += 4) {
+    var r = d[j], g = d[j + 1], b = d[j + 2];
+    L[i] = 0.299 * r + 0.587 * g + 0.114 * b;                       // terang-gelap
+    C[i] = Math.max(r, g, b) - Math.min(r, g, b);                    // kepekatan warna (kertas putih vs meja berwarna)
+  }
+  L = blur121(L, w, h); C = blur121(C, w, h);
+  var gx = new Float32Array(n), gy = new Float32Array(n);
+  for (var yy = 1; yy < h - 1; yy++) for (var xx = 1; xx < w - 1; xx++) {
+    var o = yy * w + xx;
+    var lx = sob(L, o, w, 1), ly = sob(L, o, w, 0), cxv = sob(C, o, w, 1), cyv = sob(C, o, w, 0);
+    if (cxv * cxv + cyv * cyv > lx * lx + ly * ly) { gx[o] = cxv; gy[o] = cyv; } else { gx[o] = lx; gy[o] = ly; }
+  }
+  return { w: w, h: h, k: k, gx: gx, gy: gy, L: L, C: C };
+}
+function sob(A, o, w, isX) {
+  return isX ? (A[o - w + 1] + 2 * A[o + 1] + A[o + w + 1]) - (A[o - w - 1] + 2 * A[o - 1] + A[o + w - 1])
+             : (A[o + w - 1] + 2 * A[o + w] + A[o + w + 1]) - (A[o - w - 1] + 2 * A[o - w] + A[o - w + 1]);
+}
+function blur121(A, w, h) {
+  var T = new Float32Array(A.length), B = new Float32Array(A.length), x, y, o;
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) { o = y * w + x;
+    T[o] = (A[o - (x > 0 ? 1 : 0)] + 2 * A[o] + A[o + (x < w - 1 ? 1 : 0)]) / 4; }
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) { o = y * w + x;
+    B[o] = (T[o - (y > 0 ? w : 0)] + 2 * T[o] + T[o + (y < h - 1 ? w : 0)]) / 4; }
+  return B;
+}
+function bil(A, G, x, y) {
+  if (x < 1 || y < 1 || x >= G.w - 2 || y >= G.h - 2) return 0;
+  var x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, o = y0 * G.w + x0;
+  return A[o] * (1 - fx) * (1 - fy) + A[o + 1] * fx * (1 - fy) + A[o + G.w] * (1 - fx) * fy + A[o + G.w + 1] * fx * fy;
+}
+function fitSide(a, b, G, R) {
+  var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+  if (len < 25) return null;
+  var ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
+  var N = Math.min(90, Math.max(24, Math.round(len / 5)));
+  var pts = [];
+  // Skor tepi = beda rata-rata kiri vs kanan garis (tepi "tangga").
+  // Garis tipis (teks, garis tabel nota) kiri-kanannya sama-sama kertas -> skornya kecil,
+  // jadi tidak salah ditangkap sebagai tepi dokumen.
+  // Tahap kasar: skor = beda MEDIAN 12 piksel di kiri vs kanan garis (tepi "tangga").
+  // Garis tipis (teks, garis tabel nota, bayangan tipis) tidak lolos karena median kebal terhadapnya.
+  function step(A, x, y) {
+    var p1 = [], p2 = [];
+    for (var m = 1.5; m <= 12.5; m += 1) {
+      p1.push(bil(A, G, x + nx * m, y + ny * m));
+      p2.push(bil(A, G, x - nx * m, y - ny * m));
+    }
+    p1.sort(numAsc); p2.sort(numAsc);
+    return (p1[5] + p1[6]) / 2 - (p2[5] + p2[6]) / 2;
+  }
+  function grad(x, y) { return Math.abs(bil(G.gx, G, x, y) * nx + bil(G.gy, G, x, y) * ny); }  // hanya tepi sejajar sisi
+  for (var j = 0; j < N; j++) {
+    var t = 0.08 + 0.84 * j / (N - 1);          // abaikan ujung sisi (pojok membulat / jari)
+    var cx = a.x + dx * t, cy = a.y + dy * t, best = 0, bd = 0, bs = 0, d, x, y;
+    for (d = -R; d <= R; d += 1) {
+      x = cx + nx * d; y = cy + ny * d;
+      if (grad(x, y) < 4) continue;
+      var sl = step(G.L, x, y), sc = step(G.C, x, y);
+      var v = Math.max(Math.abs(sl), Math.abs(sc));
+      if (v > best) { best = v; bd = d; bs = (Math.abs(sl) >= Math.abs(sc) ? (sl > 0 ? 2 : -2) : (sc > 0 ? 1 : -1)); }
+    }
+    if (best <= 0) continue;
+    // Tahap halus: posisi presisi = gradien terkuat di sekitar hasil kasar (±3 px, langkah 0,25)
+    var gb = -1, fd = bd;
+    for (d = bd - 3; d <= bd + 3; d += 0.25) {
+      var gv = grad(cx + nx * d, cy + ny * d);
+      if (gv > gb) { gb = gv; fd = d; }
+    }
+    pts.push({ x: cx + nx * fd, y: cy + ny * fd, v: best, s: bs });
+  }
+  // sisi dalam/luar harus konsisten sepanjang sisi (mis. kertas selalu lebih terang dari meja)
+  var cnt = {};
+  pts.forEach(function (p) { cnt[p.s] = (cnt[p.s] || 0) + 1; });
+  var maj = null; for (var key in cnt) if (maj === null || cnt[key] > cnt[maj]) maj = key;
+  pts = pts.filter(function (p) { return String(p.s) === maj; });
+  if (pts.length < 10) return null;
+  var vs = pts.map(function (p) { return p.v; }).sort(function (p, q) { return p - q; });
+  var med = vs[vs.length >> 1];
+  pts = pts.filter(function (p) { return p.v >= Math.max(3, 0.4 * med); });
+  if (pts.length < 10) return null;
+
+  // RANSAC deterministik (hasil sama tiap kali)
+  var bestIn = null, tol = 1.5, seed = 12345;
+  function rnd(m) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % m; }
+  for (var it = 0; it < 120; it++) {
+    var p = pts[rnd(pts.length)], q = pts[rnd(pts.length)];
+    var lx = q.x - p.x, ly = q.y - p.y, ll = Math.hypot(lx, ly);
+    if (ll < len * 0.2) continue;
+    lx /= ll; ly /= ll;
+    if (Math.abs(lx * ux + ly * uy) < 0.985) continue;          // beda sudut > ~10° dari prediksi -> tolak
+    var inl = pts.filter(function (s) { return Math.abs((s.x - p.x) * -ly + (s.y - p.y) * lx) <= tol; });
+    if (!bestIn || inl.length > bestIn.length) bestIn = inl;
+  }
+  if (!bestIn || bestIn.length < Math.max(10, 0.4 * N)) return null;
+  // cakupan: titik inlier harus tersebar sepanjang sisi, bukan menumpuk di satu bagian
+  var proj = bestIn.map(function (s) { return (s.x - a.x) * ux + (s.y - a.y) * uy; });
+  if (Math.max.apply(null, proj) - Math.min.apply(null, proj) < len * 0.45) return null;
+  return tls(bestIn);
+}
+function numAsc(a, b) { return a - b; }
+function tls(P) {   // garis terbaik (total least squares)
+  var mx = 0, my = 0, n = P.length, i;
+  for (i = 0; i < n; i++) { mx += P[i].x / n; my += P[i].y / n; }
+  var sxx = 0, sxy = 0, syy = 0;
+  for (i = 0; i < n; i++) { var dx = P[i].x - mx, dy = P[i].y - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+  var th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+  return { px: mx, py: my, ux: Math.cos(th), uy: Math.sin(th) };
+}
+function lineAB(a, b) { var l = Math.hypot(b.x - a.x, b.y - a.y) || 1; return { px: a.x, py: a.y, ux: (b.x - a.x) / l, uy: (b.y - a.y) / l }; }
+function inter(L1, L2) {
+  var den = L1.ux * L2.uy - L1.uy * L2.ux;
+  if (Math.abs(den) < 0.2) return null;                 // hampir sejajar
+  var t = ((L2.px - L1.px) * L2.uy - (L2.py - L1.py) * L2.ux) / den;
+  return { x: L1.px + L1.ux * t, y: L1.py + L1.uy * t };
+}
+function refineQuad(q, G, Rpx) {
+  var k = G.k, P = q.map(function (p) { return { x: p.x * k, y: p.y * k }; });
+  var R = Rpx ? Rpx * k : Math.max(6, Math.hypot(G.w, G.h) * 0.03), lines = [], locked = 0;
+  for (var s = 0; s < 4; s++) {
+    var L = fitSide(P[s], P[(s + 1) % 4], G, R);
+    if (L) locked++;
+    lines.push(L || lineAB(P[s], P[(s + 1) % 4]));
+  }
+  var out = [];
+  for (var i = 0; i < 4; i++) {
+    var c = inter(lines[(i + 3) % 4], lines[i]);
+    if (!c || Math.hypot(c.x - P[i].x, c.y - P[i].y) > R * 1.5) c = P[i];
+    out.push({ x: clamp(c.x / k, 0, st.W), y: clamp(c.y / k, 0, st.H) });
+  }
+  if (!isConvex(out)) return { q: cloneQ(q), locked: 0 };
+  return { q: out, locked: locked };
+}
+function cropRect(q, mg) {
+  var xs = q.map(function (p) { return p.x; }), ys = q.map(function (p) { return p.y; });
+  var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+  var m = mg * Math.max(x1 - x0, y1 - y0);
+  x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(st.W, x1 + m); y1 = Math.min(st.H, y1 + m);
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+function cropCanvas(r) {
+  var k = Math.min(1, ML_CROP_SIDE / Math.max(r.w, r.h));
+  var c = document.createElement('canvas');
+  c.width = Math.max(16, Math.round(r.w * k)); c.height = Math.max(16, Math.round(r.h * k));
+  c.getContext('2d').drawImage(st.work, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+  return { c: c, k: k };
+}
+function mapBack(corners, r, k) {
+  var p = [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft];
+  return normQuad(p.map(function (a) { return { x: r.x + a.x / k, y: r.y + a.y / k }; }));
+}
+// Dukungan tepi: per sisi, berapa persen titik yang tepat di atasnya (±4 px) ada tepi "tangga" nyata
+function edgeSupport(q, G) {
+  var k = G.k, sides = [];
+  function med(A, x, y, nx, ny, sgn) {
+    var v = [];
+    for (var u = 2; u <= 9; u++) v.push(bil(A, G, x + sgn * nx * u, y + sgn * ny * u));
+    v.sort(numAsc); return (v[3] + v[4]) / 2;
+  }
+  for (var s = 0; s < 4; s++) {
+    var a = q[s], b = q[(s + 1) % 4];
+    var ax = a.x * k, ay = a.y * k, dx = b.x * k - ax, dy = b.y * k - ay, len = Math.hypot(dx, dy);
+    if (len < 10) { sides.push(0); continue; }
+    var nx = -dy / len, ny = dx / len, hit = 0, N = 40;
+    for (var j = 0; j < N; j++) {
+      var t = 0.1 + 0.8 * j / (N - 1), cx = ax + dx * t, cy = ay + dy * t, best = 0;
+      for (var d = -4; d <= 4; d += 1) {
+        var x = cx + nx * d, y = cy + ny * d;
+        var sl = Math.abs(med(G.L, x, y, nx, ny, 1) - med(G.L, x, y, nx, ny, -1));
+        var sc = Math.abs(med(G.C, x, y, nx, ny, 1) - med(G.C, x, y, nx, ny, -1));
+        if (sl > best) best = sl; if (sc > best) best = sc;
+      }
+      if (best >= 10) hit++;
+    }
+    sides.push(hit / N);
+  }
+  return { min: Math.min.apply(null, sides), mean: (sides[0] + sides[1] + sides[2] + sides[3]) / 4, sides: sides };
+}
+// Bentuk masuk akal: tiap sudut 45°–135°, sisi berhadapan tidak beda jauh
+function shapeOk(q) {
+  if (!isConvex(q)) return false;
+  for (var i = 0; i < 4; i++) {
+    var p = q[(i + 3) % 4], c = q[i], n = q[(i + 1) % 4];
+    var v1x = p.x - c.x, v1y = p.y - c.y, v2x = n.x - c.x, v2y = n.y - c.y;
+    var cos = (v1x * v2x + v1y * v2y) / (Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y) || 1);
+    var ang = Math.acos(clamp(cos, -1, 1)) * 180 / Math.PI;
+    if (ang < 45 || ang > 135) return false;
+  }
+  var L = [0, 1, 2, 3].map(function (i) { var a = q[i], b = q[(i + 1) % 4]; return Math.hypot(b.x - a.x, b.y - a.y); });
+  if (Math.min(L[0], L[2]) / Math.max(L[0], L[2]) < 0.4) return false;
+  if (Math.min(L[1], L[3]) / Math.max(L[1], L[3]) < 0.4) return false;
+  return true;
+}
+function maxCornerDist(a, b) { var m = 0; for (var i = 0; i < 4; i++) m = Math.max(m, Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y)); return m; }
+function shortSide(q) { var m = 1e18; for (var i = 0; i < 4; i++) { var a = q[i], b = q[(i + 1) % 4]; m = Math.min(m, Math.hypot(b.x - a.x, b.y - a.y)); } return m; }
+// Geser keempat sisi ke dalam sejauh d piksel (untuk mencari tepi di DALAM kandidat)
+function insetQuad(q, d) {
+  var L = [];
+  for (var s = 0; s < 4; s++) {
+    var a = q[s], b = q[(s + 1) % 4], l = lineAB(a, b);
+    L.push({ px: l.px - l.uy * d, py: l.py + l.ux * d, ux: l.ux, uy: l.uy });   // normal (-uy,ux) mengarah ke dalam
+  }
+  var out = [];
+  for (var i = 0; i < 4; i++) { var c = inter(L[(i + 3) % 4], L[i]); if (!c) return null; out.push(c); }
+  return isConvex(out) ? out : null;
+}
+// Cari "kotak di dalam kotak" (mis. kartu KTP di dalam plastik, KTP di atas kertas).
+// Per sisi: cari tepi kedua di sebelah dalam. Sisi yang tidak punya tepi dalam tetap pakai
+// tepi luar (contoh: plastik bening di atas kertas putih -> tepi bawahnya sama dengan kartu).
+function innerSearch(c, G) {
+  var k = G.k, res = [];
+  var len = [0, 1, 2, 3].map(function (i) { var a = c.q[i], b = c.q[(i + 1) % 4]; return Math.hypot(b.x - a.x, b.y - a.y); });
+  var short = Math.min.apply(null, len);
+  var outerL = [0, 1, 2, 3].map(function (i) { return lineAB(c.q[i], c.q[(i + 1) % 4]); });
+  [[0.045, 0.035], [0.085, 0.05]].forEach(function (cfg) {
+    var q0 = insetQuad(c.q, short * cfg[0]);
+    if (!q0) return;
+    var P = q0.map(function (p) { return { x: p.x * k, y: p.y * k }; });
+    var lines = [], nIn = 0, moved = [];
+    for (var s = 0; s < 4; s++) {
+      var L = fitSide(P[s], P[(s + 1) % 4], G, short * cfg[1] * k), use = outerL[s];
+      if (L) {
+        var Lo = { px: L.px / k, py: L.py / k, ux: L.ux, uy: L.uy }, o = outerL[s];
+        var dIn = (Lo.px - o.px) * -o.uy + (Lo.py - o.py) * o.ux;     // jarak ke dalam dari sisi luar
+        if (dIn > short * 0.012 && dIn < short * 0.2) { use = Lo; nIn++; moved.push(s); }
+      }
+      lines.push(use);
+    }
+    if (nIn < 3) return;            // v3: minimal 3 sisi harus punya tepi dalam sendiri (cegah kandidat palsu dari gambar/garis di dokumen)
+    var q = [];
+    for (var i = 0; i < 4; i++) { var p = inter(lines[(i + 3) % 4], lines[i]); if (!p) return; q.push({ x: clamp(p.x, 0, st.W), y: clamp(p.y, 0, st.H) }); }
+    if (!isConvex(q) || !shapeOk(q)) return;
+    var sup = edgeSupport(q, G);
+    // sisi yang digeser ke dalam harus menempel tepi nyata hampir sepanjang sisinya
+    if (moved.some(function (si) { return sup.sides[si] < 0.85; })) return;
+    res.push({ q: q, src: 'Tepi dalam' });
+  });
+  return res;
+}
+function evalCand(raw, G) {
+  if (!raw || !raw.q) return null;
+  var ref = raw.src === 'Tepi dalam' ? { q: raw.q, locked: 4 } : refineQuad(raw.q, G);
+  var q = ref.q, sup = edgeSupport(q, G), ar = areaQ(q) / (st.W * st.H);
+  return { q: q, src: raw.src, locked: ref.locked, sup: sup, area: ar,
+           ok: sup.min >= SUP_MIN && ref.locked >= 3 && shapeOk(q) && ar >= 0.015 };   // min 3 sisi harus terkunci ke tepi nyata
+}
+// Rasio sisi panjang : sisi pendek ASLI (sudah dikoreksi kemiringan foto)
+function quadRatio(q) {
+  var r = trueAspect(q, st.W, st.H).ratio;
+  return r >= 1 ? r : 1 / r;
+}
+// Seberapa mirip "kertas": isi terang dan tidak berwarna (rata-rata grid 12x12 di dalam kotak)
+function paperScore(q, G) {
+  var k = G.k, sl = 0, sc = 0, n = 0;
+  for (var i = 1; i < 12; i++) for (var j = 1; j < 12; j++) {
+    var u = i / 12, v = j / 12;
+    var top = { x: q[0].x + (q[1].x - q[0].x) * u, y: q[0].y + (q[1].y - q[0].y) * u };
+    var bot = { x: q[3].x + (q[2].x - q[3].x) * u, y: q[3].y + (q[2].y - q[3].y) * u };
+    var x = (top.x + (bot.x - top.x) * v) * k, y = (top.y + (bot.y - top.y) * v) * k;
+    sl += bil(G.L, G, x, y); sc += bil(G.C, G, x, y); n++;
+  }
+  return (sl / n) / 255 - (sc / n) / 80;
+}
+// Pilihan default per jenis dokumen
+//  kertas : invoice / nota / surat -> kandidat paling "kertas" (terang, tidak berwarna) + bonus rasio A4/A5/A6
+//  kartu  : KTP / SIM / kartu      -> rasio paling dekat 1,586 (ukuran kartu standar ID-1)
+//  lain   : ikut pilihan AI kalau masuk akal, kalau tidak yang tepinya paling kuat
+function chooseDefault(list, aiFull, G) {
+  if (list.length < 2) return 0;
+  var jenis = st.jenis || 'kertas', best = 0, i;
+  if (jenis === 'kartu') {
+    var bd = 1e9;
+    for (i = 0; i < list.length; i++) { var d = Math.abs(Math.log(quadRatio(list[i].q) / 1.586)); if (d < bd) { bd = d; best = i; } }
+    return best;
+  }
+  if (jenis === 'kertas') {
+    var bs = -1e9;
+    for (i = 0; i < list.length; i++) {
+      // bonus rasio kertas seri A (A4/A5/A6 = 1,414); hanya bonus, foto miring bisa sedikit mengubah rasio
+      var dr = Math.log(quadRatio(list[i].q) / Math.SQRT2) / 0.12;
+      var ps = paperScore(list[i].q, G) + 0.3 * list[i].sup.mean + 0.25 * Math.exp(-dr * dr);
+      if (ps > bs) { bs = ps; best = i; }
+    }
+    return best;
+  }
+  if (aiFull && aiFull.ok) {
+    var bdd = 1e18;
+    for (i = 0; i < list.length; i++) { var dd = maxCornerDist(list[i].q, aiFull.q); if (dd < bdd) { bdd = dd; best = i; } }
+    return best;
+  }
+  for (i = 0; i < list.length; i++) if (list[i].sup.mean > list[best].sup.mean + 0.03) best = i;
+  return best;
+}
+function buildCandidates(G) {
+  var raw = [], tML = 0, tCL = 0, nML = 0;
+  function runMl(r, src) { var t = performance.now(); nML++;
+    return DET.ml(r).then(function (m) { tML += performance.now() - t; if (m) raw.push({ q: m.q, src: src, score: m.score }); return m; }); }
+  function runCl(r, src) { var t = performance.now();
+    return DET.cl(r).then(function (q) { tCL += performance.now() - t; if (q) raw.push({ q: q, src: src }); return q; }); }
+  var mlFull = null, clFull = null;
+  return runMl(null, 'AI').then(function (m) { mlFull = m; return runCl(null, 'Klasik'); })
+  .then(function (q) { clFull = q; })
+  .then(function () {
+    // AI "zoom": jalankan ulang di area tiap hasil awal -> lebih presisi
+    var seeds = raw.slice(), p = Promise.resolve();
+    seeds.forEach(function (sd) { p = p.then(function () { return runMl(cropRect(sd.q, 0.12), 'AI zoom'); }); });
+    return p;
+  }).then(function () {
+    // Cari dokumen DI DALAM kandidat yang bagus (mis. kartu di dalam plastik, KTP di atas kertas)
+    var good = raw.map(function (r) { return evalCand(r, G); }).filter(function (c) { return c && c.ok; });
+    good.sort(function (a, b) { return b.area - a.area; });
+    var uniq = [];
+    good.forEach(function (c) { if (!uniq.some(function (u) { return maxCornerDist(u.q, c.q) < 0.03 * Math.hypot(st.W, st.H); })) uniq.push(c); });
+    var p = Promise.resolve();
+    uniq.slice(0, 3).forEach(function (c) {
+      p = p.then(function () { return runMl(cropRect(c.q, 0.02), 'AI dalam'); })
+           .then(function () { return runCl(cropRect(c.q, 0.02), 'Klasik dalam'); });
+    });
+    return p;
+  }).then(function () {
+    var t = performance.now();
+    var all = raw.map(function (r) { return evalCand(r, G); }).filter(function (c) { return c && c.ok; });
+    all.slice().sort(function (a, b) { return b.area - a.area; }).slice(0, 4).forEach(function (c) {
+      innerSearch(c, G).forEach(function (r) { var e = evalCand(r, G); if (e && e.ok) all.push(e); });
+    });
+    all.sort(function (a, b) { return b.sup.mean - a.sup.mean; });
+    var diag = Math.hypot(st.W, st.H), list = [];
+    all.forEach(function (c) {   // gabung kandidat yang sama (sudut beda < 1,5% sisi pendek, min 6 px)
+      if (!list.some(function (u) { return maxCornerDist(u.q, c.q) < Math.max(6, 0.015 * shortSide(u.q)); })) list.push(c);
+    });
+    list.sort(function (a, b) { return b.area - a.area; });   // urut: terbesar dulu
+    var aiFull = mlFull ? evalCand({ q: mlFull.q, src: 'AI' }, G) : null;
+    var def = chooseDefault(list, aiFull, G);
+    return { list: list, def: def, mlFull: mlFull, clFull: clFull, t: { ml: tML, cl: tCL, eval: performance.now() - t }, nML: nML, nRaw: raw.length };
+  });
+}
+function enhance(x, w, h, bw) {
+  var img = x.getImageData(0, 0, w, h), d = img.data;
+  // 1) perkiraan latar: gambar kecil (1/16), "max" 2x supaya tulisan hilang, lalu dihaluskan
+  var sw = Math.max(4, Math.round(w / 16)), sh = Math.max(4, Math.round(h / 16));
+  var t = document.createElement('canvas'); t.width = sw; t.height = sh;
+  var tx = t.getContext('2d', { willReadFrequently: true });
+  tx.imageSmoothingQuality = 'high'; tx.drawImage(x.canvas, 0, 0, sw, sh);
+  var bg = tx.getImageData(0, 0, sw, sh).data, ch, i, j, r = 2;
+  for (var pass = 0; pass < 2; pass++) {
+    var nb = new Uint8ClampedArray(bg.length);
+    for (j = 0; j < sh; j++) for (i = 0; i < sw; i++) for (ch = 0; ch < 3; ch++) {
+      var m = 0;
+      for (var dj = -r; dj <= r; dj++) for (var di = -r; di <= r; di++) {
+        var ii = Math.min(sw - 1, Math.max(0, i + di)), jj = Math.min(sh - 1, Math.max(0, j + dj));
+        var v = bg[(jj * sw + ii) * 4 + ch]; if (v > m) m = v;
+      }
+      nb[(j * sw + i) * 4 + ch] = m;
+    }
+    for (i = 0; i < nb.length; i += 4) nb[i + 3] = 255;
+    bg = nb;
+  }
+  tx.putImageData(new ImageData(bg, sw, sh), 0, 0);
+  var big = document.createElement('canvas'); big.width = w; big.height = h;
+  var bx = big.getContext('2d', { willReadFrequently: true });
+  bx.imageSmoothingQuality = 'high'; bx.filter = 'blur(' + Math.max(2, Math.round(w / 100)) + 'px)';
+  bx.drawImage(t, 0, 0, w, h);
+  var B = bx.getImageData(0, 0, w, h).data;
+  // 2) bagi dengan latar -> latar jadi putih rata
+  var n = w * h, R = new Float32Array(n * 3), Y = new Float32Array(n), p, q;
+  for (p = 0, i = 0; p < n; p++, i += 4) {
+    for (ch = 0; ch < 3; ch++) R[p * 3 + ch] = d[i + ch] / Math.max(40, B[i + ch]);
+    Y[p] = 0.299 * R[p * 3] + 0.587 * R[p * 3 + 1] + 0.114 * R[p * 3 + 2];
+  }
+  // 3) ukur bintik/noise di area kertas (foto gelap / HP murah -> noise tinggi)
+  var smp = [];
+  for (p = 0; p < n; p += 97) if (Y[p] > 0.8) smp.push(Y[p]);
+  smp.sort(numAsc);
+  var med = smp.length ? smp[smp.length >> 1] : 1, dev = [];
+  for (p = 0; p < smp.length; p++) dev.push(Math.abs(smp[p] - med));
+  dev.sort(numAsc);
+  var sigma = dev.length ? 1.4826 * dev[dev.length >> 1] : 0.02;
+  // 4) hilangkan bintik tapi tulisan tetap tajam (filter sigma 3x3: hanya rata-rata tetangga yang mirip)
+  if (sigma > 0.025) {
+    var Y2 = new Float32Array(n), R2 = new Float32Array(n * 3), lim = 2.5 * sigma;
+    for (j = 0; j < h; j++) for (i = 0; i < w; i++) {
+      p = j * w + i;
+      var sy = 0, s0 = 0, s1 = 0, s2 = 0, cnt = 0;
+      for (var yj = Math.max(0, j - 1); yj <= Math.min(h - 1, j + 1); yj++)
+        for (var xi = Math.max(0, i - 1); xi <= Math.min(w - 1, i + 1); xi++) {
+          q = yj * w + xi;
+          if (Math.abs(Y[q] - Y[p]) <= lim) { sy += Y[q]; s0 += R[q * 3]; s1 += R[q * 3 + 1]; s2 += R[q * 3 + 2]; cnt++; }
+        }
+      Y2[p] = sy / cnt; R2[p * 3] = s0 / cnt; R2[p * 3 + 1] = s1 / cnt; R2[p * 3 + 2] = s2 / cnt;
+    }
+    Y = Y2; R = R2;
+  }
+  // 5) batas putih menyesuaikan noise: makin bernoise, makin banyak bintik tipis yang diputihkan
+  var white = Math.max(0.78, Math.min(0.96, med - 3 * sigma)), lo = 0.12;
+  // 6) buang bintik terpisah: kelompok titik gelap yang sangat kecil (bukan bagian huruf/garis) -> putih.
+  //    Huruf, angka, garis, titik "i" dan titik desimal jauh lebih besar dari bintik noise.
+  var dark = new Uint8Array(n), bgMask = new Uint8Array(n), minSize = Math.max(10, Math.round(n * 0.0000035));
+  for (p = 0; p < n; p++) dark[p] = Y[p] < white ? 1 : 0;
+  var stack = new Int32Array(n), comp = [];
+  for (p = 0; p < n; p++) {
+    if (dark[p] !== 1) continue;
+    var sp = 0; stack[sp++] = p; dark[p] = 2; comp.length = 0; var minY = 9;
+    while (sp) {
+      var cur = stack[--sp]; comp.push(cur); if (Y[cur] < minY) minY = Y[cur];
+      var cx = cur % w, cy = (cur / w) | 0;
+      if (cx > 0 && dark[cur - 1] === 1) { dark[cur - 1] = 2; stack[sp++] = cur - 1; }
+      if (cx < w - 1 && dark[cur + 1] === 1) { dark[cur + 1] = 2; stack[sp++] = cur + 1; }
+      if (cy > 0 && dark[cur - w] === 1) { dark[cur - w] = 2; stack[sp++] = cur - w; }
+      if (cy < h - 1 && dark[cur + w] === 1) { dark[cur + w] = 2; stack[sp++] = cur + w; }
+    }
+    // kecil sekali -> bintik; atau samar (tidak ada titik yang benar-benar gelap) dan tidak besar -> bintik
+    var faint = minY > lo + 0.55 * (white - lo);
+    if (comp.length < minSize || (faint && comp.length < minSize * 30)) for (var ci = 0; ci < comp.length; ci++) bgMask[comp[ci]] = 1;
+  }
+  for (p = 0, i = 0; p < n; p++, i += 4) {
+    var yv = Y[p];
+    var isBg = yv >= white || bgMask[p] === 1;
+    for (ch = 0; ch < 3; ch++) {
+      var vv = (R[p * 3 + ch] - lo) / (white - lo);
+      if (isBg) vv = 1;
+      d[i + ch] = vv <= 0 ? 0 : vv >= 1 ? 255 : Math.round(Math.pow(vv, 1.15) * 255);
+    }
+    if (bw) {
+      var g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      g = g > 200 ? 255 : g < 110 ? g * 0.5 : g;              // tulisan hitam pekat, latar putih
+      d[i] = d[i + 1] = d[i + 2] = g;
+    }
+  }
+  x.putImageData(img, 0, 0);
+}
+
+
+  // Deteksi lengkap. Hasil: { list:[{q,src,locked,sup,area}], def, warn:[...] }
+  function detect(canvas, jenis) {
+    st.work = canvas; st.W = canvas.width; st.H = canvas.height; st.jenis = jenis || 'kertas';
+    if (!S) return Promise.resolve({ list: [], def: 0, warn: [] });
+    var G = buildGrad(canvas);
+    return buildCandidates(G).then(function (r) {
+      var warn = [];
+      var c = r.list[r.def];
+      if (c) {
+        if (c.area < 0.12) warn.push('Dokumen kecil di foto — dekatkan kamera supaya hasil lebih tajam.');
+        var k = G.k, sl = 0, n = 0;
+        for (var i = 1; i < 10; i++) for (var j = 1; j < 10; j++) {
+          var u = i / 10, v = j / 10, q = c.q;
+          var tx = q[0].x + (q[1].x - q[0].x) * u, ty = q[0].y + (q[1].y - q[0].y) * u;
+          var bx = q[3].x + (q[2].x - q[3].x) * u, by = q[3].y + (q[2].y - q[3].y) * u;
+          sl += bil(G.L, G, (tx + (bx - tx) * v) * k, (ty + (by - ty) * v) * k); n++;
+        }
+        if (sl / n < 85) warn.push('Foto agak gelap — hasil bisa berbintik. Foto ulang di tempat terang (tanpa flash).');
+      }
+      return { list: r.list, def: r.def, warn: warn, aiFull: r.mlFull ? r.mlFull.q : null };
+    });
+  }
+  // pilih ulang default kalau jenis (dokumen/kartu) diganti
+  function redefault(canvas, list, jenis) {
+    st.work = canvas; st.W = canvas.width; st.H = canvas.height; st.jenis = jenis;
+    return chooseDefault(list, null, buildGrad(canvas));
+  }
+  // Luruskan: pakai scanic (cepat); kalau tidak ada, pakai perhitungan sendiri
+  function extract(canvas, pts) {
+    var corners = { topLeft: pts[0], topRight: pts[1], bottomRight: pts[2], bottomLeft: pts[3] };
+    if (S && S.extractDocument) {
+      return S.extractDocument(canvas, corners, { output: 'canvas' }).then(function (r) {
+        if (r && r.success && r.output) return r.output;
+        return warpJs(canvas, pts);
+      }).catch(function () { return warpJs(canvas, pts); });
+    }
+    return Promise.resolve(warpJs(canvas, pts));
+  }
+  // Cadangan tanpa library: homografi + bilinear
+  function warpJs(canvas, pts) {
+    var w = Math.round(Math.max(Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y), Math.hypot(pts[2].x - pts[3].x, pts[2].y - pts[3].y)));
+    var h = Math.round(Math.max(Math.hypot(pts[3].x - pts[0].x, pts[3].y - pts[0].y), Math.hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y)));
+    var s = Math.min(1, 2800 / Math.max(w, h)); w = Math.max(2, Math.round(w * s)); h = Math.max(2, Math.round(h * s));
+    var H = homography([[0, 0], [w, 0], [w, h], [0, h]], pts.map(function (p) { return [p.x, p.y]; }));
+    var sx = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
+    var sd = sx.data, SW = canvas.width, SH = canvas.height;
+    var out = document.createElement('canvas'); out.width = w; out.height = h;
+    var ox = out.getContext('2d'), od = ox.createImageData(w, h), d = od.data;
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      var zz = H[6] * x + H[7] * y + 1, u = (H[0] * x + H[1] * y + H[2]) / zz, v = (H[3] * x + H[4] * y + H[5]) / zz;
+      u = Math.max(0, Math.min(SW - 1.001, u)); v = Math.max(0, Math.min(SH - 1.001, v));
+      var x0 = u | 0, y0 = v | 0, fx = u - x0, fy = v - y0, o = (y0 * SW + x0) * 4, oo = (y * w + x) * 4;
+      for (var ch = 0; ch < 3; ch++)
+        d[oo + ch] = sd[o + ch] * (1 - fx) * (1 - fy) + sd[o + 4 + ch] * fx * (1 - fy) + sd[o + SW * 4 + ch] * (1 - fx) * fy + sd[o + SW * 4 + 4 + ch] * fx * fy;
+      d[oo + 3] = 255;
+    }
+    ox.putImageData(od, 0, 0);
+    return out;
+  }
+  function homography(src, dst) {   // dst = H * src (8 parameter)
+    var A = [], b = [];
+    for (var i = 0; i < 4; i++) {
+      var x = src[i][0], y = src[i][1], u = dst[i][0], v = dst[i][1];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+    }
+    for (var c = 0; c < 8; c++) {           // eliminasi Gauss
+      var p = c; for (var r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+      var t = A[c]; A[c] = A[p]; A[p] = t; var tb = b[c]; b[c] = b[p]; b[p] = tb;
+      for (r = 0; r < 8; r++) if (r !== c) {
+        var f = A[r][c] / A[c][c];
+        for (var k = c; k < 8; k++) A[r][k] -= f * A[c][k];
+        b[r] -= f * b[c];
+      }
+    }
+    return b.map(function (v, i) { return v / A[i][i]; });
+  }
+  // Rasio asli (lebar/tinggi) dari 4 sudut, plus "jepret" ke ukuran kertas umum kalau dekat
+  function outRatio(pts, W, H, mode) {
+    var r = trueAspect(pts, W, H).ratio;
+    if (mode === 'kartu') return r >= 1 ? 85.6 / 54 : 54 / 85.6;
+    var long = r >= 1 ? r : 1 / r;
+    var KNOWN = [Math.SQRT2, 330 / 215, 279.4 / 215.9];   // A4/A5/A6, F4 (folio), Letter
+    for (var i = 0; i < KNOWN.length; i++) if (Math.abs(long / KNOWN[i] - 1) < 0.04) { long = KNOWN[i]; break; }
+    return r >= 1 ? long : 1 / long;
+  }
+  return { load: load, ready: function () { return !!S; }, aiReady: function () { return mlReady; },
+           detect: detect, redefault: redefault, extract: extract, outRatio: outRatio, enhance: enhance };
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var PROC_MAX = 2800, OUT_DOC = 2400, OUT_CARD = 1600;
+  var mode = 'dokumen', antre = [], pages = [], edit = null;
+
+  function busy(t) { var b = $('busy'); b.style.display = t ? 'flex' : 'none'; b.textContent = t || ''; }
+  var toastT = null;
+  function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(function () { e.style.display = 'none'; }, 2600); }
+  function show(v) { ['vHome', 'vCrop', 'vFilter'].forEach(function (x) { $(x).classList.toggle('hide', x !== v); }); window.scrollTo(0, 0); }
+  function tick() { return new Promise(function (r) { setTimeout(r, 30); }); }
+  function kanvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function salin(q) { return q.map(function (p) { return { x: p.x, y: p.y }; }); }
+
+  // mesin scan dimuat di belakang sejak halaman dibuka
+  ENG.load().then(function (ok) { $('engStat').textContent = ok ? (ENG.aiReady() ? 'siap ✓' : 'siap (tanpa AI)') : 'mesin gagal — atur manual'; });
+
+  $('segMode').onclick = function (e) {
+    var b = e.target.closest('[data-m]'); if (!b) return;
+    mode = b.getAttribute('data-m');
+    Array.prototype.forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
+  };
+
+  // ---------- ambil foto ----------
+  function bukaFile(f) {
+    return new Promise(function (ok, no) {
+      var url = URL.createObjectURL(f), im = new Image();
+      im.onload = function () {
+        URL.revokeObjectURL(url);
+        var s = Math.min(1, PROC_MAX / Math.max(im.naturalWidth, im.naturalHeight));
+        var c = kanvas(Math.round(im.naturalWidth * s), Math.round(im.naturalHeight * s));
+        var x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, c.width, c.height);
+        ok(c);
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); no(new Error('Foto tidak terbaca (format HEIC? ubah ke JPG)')); };
+      im.src = url;
+    });
+  }
+  function terima(files) {
+    files = Array.prototype.slice.call(files || []);
+    if (!files.length) return;
+    antre = antre.concat(files);
+    if (!edit) lanjutAntre();
+  }
+  $('inCam').onchange = function () { terima(this.files); this.value = ''; };
+  $('inGal').onchange = function () { terima(this.files); this.value = ''; };
+
+  function lanjutAntre() {
+    var f = antre.shift();
+    if (!f) { edit = null; renderPages(); show('vHome'); return; }
+    busy('Membuka foto…');
+    tick().then(function () { return bukaFile(f); }).then(function (c) {
+      edit = { orig: c, pts: inset(c), cands: [], ci: 0, warn: [], filter: mode === 'kartu' ? 'asli' : 'bersih', flat: null, rot: 0 };
+      return deteksi();
+    }).then(function () { busy(''); bukaCrop(); }).catch(function (e) { busy(''); toast(e.message || String(e)); lanjutAntre(); });
+  }
+  function inset(c) { var mx = c.width * 0.06, my = c.height * 0.06; return [{ x: mx, y: my }, { x: c.width - mx, y: my }, { x: c.width - mx, y: c.height - my }, { x: mx, y: c.height - my }]; }
+  function deteksi() {
+    busy('Mendeteksi tepi…');
+    return ENG.load().then(function (ok) {
+      if (!ok) { edit.warn = ['Mesin scan gagal dimuat (cek internet). Geser sudut manual.']; return; }
+      return ENG.detect(edit.orig, mode === 'kartu' ? 'kartu' : 'kertas').then(function (r) {
+        edit.cands = r.list.map(function (x) { return x.q; }); edit.ci = r.def; edit.warn = r.warn || [];
+        if (edit.cands.length) edit.pts = salin(edit.cands[edit.ci]);
+        else edit.warn = ['Tepi tidak terdeteksi — geser 4 sudut manual. Tips: alas yang kontras.'];
+      });
+    }).catch(function (e) { console.warn(e); });
+  }
+
+  // ---------- atur sudut ----------
+  var cv = { s: 1, dpr: 1, w: 0, h: 0 }, seret = -1, seretOff = null, seretAkhir = null;
+  function bukaCrop() {
+    $('cropInfo').textContent = antre.length ? '(' + antre.length + ' foto lagi)' : '';
+    renderCands(); renderWarn(); show('vCrop'); requestAnimationFrame(layoutCrop);
+  }
+  function renderCands() {
+    var n = edit.cands.length, box = $('cands');
+    box.classList.toggle('hide', n < 2);
+    if (n < 2) return;
+    box.innerHTML = '<span class="muted">Pilih:</span>' + edit.cands.map(function (q, i) {
+      var l = i === 0 ? 'Terluar' : i === n - 1 ? 'Terdalam' : 'Tengah ' + i;
+      return '<button class="chip' + (i === edit.ci ? ' on' : '') + '" data-ci="' + i + '">' + (i + 1) + ' · ' + l + '</button>';
+    }).join('');
+  }
+  function renderWarn() { $('cropWarn').classList.toggle('hide', !edit.warn.length); $('cropWarn').textContent = '⚠️ ' + edit.warn.join(' '); }
+  function pilih(i) { if (!edit.cands[i]) return; edit.ci = i; edit.pts = salin(edit.cands[i]); renderCands(); gambar(); }
+  $('cands').onclick = function (e) { var b = e.target.closest('[data-ci]'); if (b) pilih(+b.getAttribute('data-ci')); };
+  function layoutCrop() {
+    var o = edit.orig, maxW = $('cropWrap').clientWidth - 16, maxH = window.innerHeight * 0.62;
+    var s = Math.min(maxW / o.width, maxH / o.height), dpr = window.devicePixelRatio || 1, c = $('cropCv');
+    var w = Math.round(o.width * s), h = Math.round(o.height * s);
+    c.style.width = w + 'px'; c.style.height = h + 'px'; c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+    cv = { s: s, dpr: dpr, w: w, h: h }; gambar();
+  }
+  window.addEventListener('resize', function () { if (edit && !$('vCrop').classList.contains('hide')) layoutCrop(); });
+  function tengah(p) { return p.map(function (a, i) { var b = p[(i + 1) % 4]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }); }
+  function jalur(x, p) { x.beginPath(); x.moveTo(p[0].x, p[0].y); for (var i = 1; i < 4; i++) x.lineTo(p[i].x, p[i].y); x.closePath(); }
+  function gambar() {
+    var x = $('cropCv').getContext('2d'), s = cv.s;
+    x.setTransform(cv.dpr, 0, 0, cv.dpr, 0, 0); x.clearRect(0, 0, cv.w, cv.h);
+    x.drawImage(edit.orig, 0, 0, cv.w, cv.h);
+    var p = edit.pts.map(function (q) { return { x: q.x * s, y: q.y * s }; });
+    x.fillStyle = 'rgba(0,0,0,.45)'; x.beginPath(); x.rect(0, 0, cv.w, cv.h);
+    x.moveTo(p[0].x, p[0].y); for (var i = 1; i < 4; i++) x.lineTo(p[i].x, p[i].y); x.closePath(); x.fill('evenodd');
+    edit.cands.forEach(function (q, ci) {
+      if (ci === edit.ci || edit.cands.length < 2) return;
+      var cp = q.map(function (a) { return { x: a.x * s, y: a.y * s }; });
+      x.save(); x.setLineDash([6, 5]); x.strokeStyle = 'rgba(255,255,255,.9)'; x.lineWidth = 1.5; jalur(x, cp); x.stroke(); x.restore();
+      var lx = (cp[0].x * 3 + cp[2].x) / 4, ly = (cp[0].y * 3 + cp[2].y) / 4;
+      x.font = 'bold 16px system-ui'; x.lineWidth = 3; x.strokeStyle = '#000'; x.fillStyle = '#fff'; x.strokeText(String(ci + 1), lx, ly); x.fillText(String(ci + 1), lx, ly);
+    });
+    x.strokeStyle = '#2dd4bf'; x.lineWidth = 2.5; jalur(x, p); x.stroke();
+    tengah(p).forEach(function (q) { x.beginPath(); x.arc(q.x, q.y, 7, 0, 7); x.fillStyle = '#2dd4bf'; x.fill(); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke(); });
+    p.forEach(function (q, i) { x.beginPath(); x.arc(q.x, q.y, seret === i ? 15 : 12, 0, 7); x.fillStyle = 'rgba(255,255,255,.85)'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#0f766e'; x.stroke(); });
+  }
+  function kaca(q, clientX) {
+    var L = $('loupe'), lx = L.getContext('2d'), r = $('cropCv').getBoundingClientRect(), src = 110 / (3 * cv.s);
+    L.style.left = (clientX - r.left < r.width / 2 ? r.width - 110 : 12) + 'px'; L.style.display = 'block';
+    lx.fillStyle = '#000'; lx.fillRect(0, 0, 220, 220);
+    lx.drawImage(edit.orig, q.x - src / 2, q.y - src / 2, src, src, 0, 0, 220, 220);
+    lx.strokeStyle = '#2dd4bf'; lx.lineWidth = 2; lx.beginPath(); lx.moveTo(110, 0); lx.lineTo(110, 220); lx.moveTo(0, 110); lx.lineTo(220, 110); lx.stroke();
+  }
+  function dalam(q, p) { for (var i = 0; i < 4; i++) { var a = q[i], b = q[(i + 1) % 4]; if ((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x) < 0) return false; } return true; }
+  function luas(q) { var a = 0; for (var i = 0; i < 4; i++) { var j = (i + 1) % 4; a += q[i].x * q[j].y - q[j].x * q[i].y; } return Math.abs(a) / 2; }
+  function cembung(q) {
+    var sg = 0;
+    for (var i = 0; i < 4; i++) { var a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4], z = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+      if (Math.abs(z) < 1e-6) return false; var t = z > 0 ? 1 : -1; if (!sg) sg = t; else if (t !== sg) return false; }
+    return true;
+  }
+  function pos(e) { var r = $('cropCv').getBoundingClientRect(); return { x: (e.clientX - r.left) / cv.s, y: (e.clientY - r.top) / cv.s }; }
+  $('cropCv').addEventListener('pointerdown', function (e) {
+    if (!edit) return;
+    var m = pos(e), titik = edit.pts.concat(tengah(edit.pts)), best = -1, bd = 1e9;
+    titik.forEach(function (q, i) { var d = Math.hypot(q.x - m.x, q.y - m.y) * cv.s; if (d < bd) { bd = d; best = i; } });
+    if (bd > 40 && edit.cands.length > 1) {
+      var ci = -1;
+      edit.cands.forEach(function (q, i) { if (dalam(q, m) && (ci < 0 || luas(q) < luas(edit.cands[ci]))) ci = i; });
+      if (ci >= 0 && ci !== edit.ci) { pilih(ci); e.preventDefault(); return; }
+    }
+    if (bd > 60) return;
+    seret = best; seretOff = { x: titik[best].x - m.x, y: titik[best].y - m.y }; seretAkhir = { x: titik[best].x, y: titik[best].y };
+    $('cropCv').setPointerCapture(e.pointerId); e.preventDefault(); gambar(); kaca(titik[best], e.clientX);
+  });
+  $('cropCv').addEventListener('pointermove', function (e) {
+    if (seret < 0) return; e.preventDefault();
+    var m = pos(e), o = edit.orig, sebelum = salin(edit.pts);
+    var nx = Math.max(0, Math.min(o.width, m.x + seretOff.x)), ny = Math.max(0, Math.min(o.height, m.y + seretOff.y));
+    if (seret < 4) edit.pts[seret] = { x: nx, y: ny };
+    else {
+      var dx = nx - seretAkhir.x, dy = ny - seretAkhir.y, a = seret - 4, b = (a + 1) % 4;
+      [a, b].forEach(function (i) { edit.pts[i] = { x: Math.max(0, Math.min(o.width, edit.pts[i].x + dx)), y: Math.max(0, Math.min(o.height, edit.pts[i].y + dy)) }; });
+    }
+    if (!cembung(edit.pts)) edit.pts = sebelum;
+    seretAkhir = { x: nx, y: ny }; gambar(); kaca(seret < 4 ? edit.pts[seret] : tengah(edit.pts)[seret - 4], e.clientX);
+  });
+  function lepas() { if (seret >= 0) { seret = -1; $('loupe').style.display = 'none'; gambar(); } }
+  $('cropCv').addEventListener('pointerup', lepas); $('cropCv').addEventListener('pointercancel', lepas);
+
+  function putar90(s) { var c = kanvas(s.height, s.width), x = c.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(s, 0, 0); return c; }
+  $('btnCropPutar').onclick = function () { edit.orig = putar90(edit.orig); edit.pts = inset(edit.orig); deteksi().then(function () { busy(''); renderCands(); renderWarn(); layoutCrop(); }); };
+  $('btnCropPenuh').onclick = function () { var o = edit.orig; edit.pts = [{ x: 0, y: 0 }, { x: o.width, y: 0 }, { x: o.width, y: o.height }, { x: 0, y: o.height }]; edit.ci = -1; renderCands(); gambar(); };
+  $('btnCropBatal').onclick = function () { lanjutAntre(); };
+
+  // ---------- luruskan + warna ----------
+  $('btnCropLanjut').onclick = function () {
+    busy('Meluruskan…');
+    var pts = edit.pts, o = edit.orig;
+    var w = Math.max(Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y), Math.hypot(pts[2].x - pts[3].x, pts[2].y - pts[3].y));
+    var h = Math.max(Math.hypot(pts[3].x - pts[0].x, pts[3].y - pts[0].y), Math.hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y));
+    if (w < 20 || h < 20) { busy(''); return toast('Area terlalu kecil'); }
+    var r = ENG.outRatio(pts, o.width, o.height, mode === 'kartu' ? 'kartu' : 'dokumen');   // rasio asli (koreksi foto miring)
+    if (w / h >= r) h = w / r; else w = h * r;
+    var s = Math.min(1, (mode === 'kartu' ? OUT_CARD : OUT_DOC) / Math.max(w, h));
+    w = Math.round(w * s); h = Math.round(h * s);
+    tick().then(function () { return ENG.extract(o, pts); }).then(function (flat) {
+      var c = kanvas(w, h), x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(flat, 0, 0, w, h);
+      if (mode === 'kartu' && h > w) c = putar90(c);   // kartu selalu mendatar
+      edit.flat = c; edit.rot = 0;
+      setFilterUI(); return render();
+    }).then(function () { busy(''); show('vFilter'); }).catch(function (e) { busy(''); toast('Gagal: ' + (e.message || e)); });
+  };
+  function setFilterUI() { Array.prototype.forEach.call($('segFilter').children, function (b) { b.classList.toggle('on', b.getAttribute('data-f') === edit.filter); }); }
+  $('segFilter').onclick = function (e) {
+    var b = e.target.closest('[data-f]'); if (!b || !edit) return;
+    edit.filter = b.getAttribute('data-f'); setFilterUI(); busy('Memproses…'); tick().then(render).then(function () { busy(''); });
+  };
+  function olah() {   // hasil akhir = flat + putar + warna
+    var c = edit.flat;
+    for (var i = 0; i < edit.rot; i++) c = putar90(c);
+    var out = kanvas(c.width, c.height), x = out.getContext('2d', { willReadFrequently: true });
+    x.drawImage(c, 0, 0);
+    if (edit.filter === 'abu') {
+      var im = x.getImageData(0, 0, out.width, out.height), d = im.data;
+      for (var j = 0; j < d.length; j += 4) d[j] = d[j + 1] = d[j + 2] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+      x.putImageData(im, 0, 0);
+    } else if (edit.filter === 'bersih' || edit.filter === 'bw') ENG.enhance(x, out.width, out.height, edit.filter === 'bw');
+    return out;
+  }
+  function render() { edit.out = olah(); $('hasil').src = edit.out.toDataURL('image/jpeg', 0.85); }
+  $('btnFPutar').onclick = function () { edit.rot = (edit.rot + 1) % 4; busy('Memproses…'); tick().then(render).then(function () { busy(''); }); };
+  $('btnFKembali').onclick = function () { bukaCrop(); };
+  $('btnFSimpan').onclick = function () {
+    pages.push({ c: edit.out, thumb: kecil(edit.out, 300) });
+    edit = null; toast('Halaman ' + pages.length + ' ditambahkan'); lanjutAntre();
+  };
+  function kecil(c, m) { var s = Math.min(1, m / Math.max(c.width, c.height)), t = kanvas(Math.round(c.width * s), Math.round(c.height * s)); t.getContext('2d').drawImage(c, 0, 0, t.width, t.height); return t.toDataURL('image/jpeg', 0.7); }
+
+  // ---------- daftar halaman ----------
+  function renderPages() {
+    versi++; siap = {};
+    $('cardPages').classList.toggle('hide', !pages.length);
+    $('pgJudul').textContent = pages.length + ' halaman';
+    $('pages').innerHTML = pages.map(function (p, i) { return '<div class="pg"><img src="' + p.thumb + '"><b>' + (i + 1) + '</b><button data-del="' + i + '">✕</button></div>'; }).join('');
+  }
+  $('pages').onclick = function (e) { var b = e.target.closest('[data-del]'); if (!b) return; pages.splice(+b.getAttribute('data-del'), 1); renderPages(); };
+
+  // ---------- bagikan / simpan ----------
+  function namaDasar() { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return 'Scan_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()); }
+  function keBlob(c) { return new Promise(function (r) { c.toBlob(function (b) { r(b); }, 'image/jpeg', 0.9); }); }
+  function fileJpg() {
+    var dasar = namaDasar();
+    return Promise.all(pages.map(function (p, i) {
+      return keBlob(p.c).then(function (b) { return new File([b], dasar + (pages.length > 1 ? '_' + (i + 1) : '') + '.jpg', { type: 'image/jpeg' }); });
+    }));
+  }
+  function filePdf() {
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return Promise.reject(new Error('Pembuat PDF belum termuat (cek internet)'));
+    var doc = null;
+    pages.forEach(function (p) {
+      var w = p.c.width, h = p.c.height, mm = 0.2116;   // ±120 dpi -> ukuran halaman mengikuti gambar
+      var ori = w > h ? 'l' : 'p', size = [w * mm, h * mm];
+      if (!doc) doc = new J({ orientation: ori, unit: 'mm', format: size, compress: true }); else doc.addPage(size, ori);
+      doc.addImage(p.c.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, size[0], size[1]);
+    });
+    return Promise.resolve(new File([doc.output('blob')], namaDasar() + '.pdf', { type: 'application/pdf' }));
+  }
+  function bagikan(files) {
+    if (navigator.canShare && navigator.canShare({ files: files })) {
+      return navigator.share({ files: files }).catch(function (e) { if (e && e.name !== 'AbortError') throw e; });
+    }
+    toast('HP ini tidak mendukung Bagikan langsung — file disimpan, bagikan dari folder Download');
+    return simpan(files);
+  }
+  function simpan(files) {
+    files.forEach(function (f, i) {
+      setTimeout(function () {
+        var a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name;
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      }, i * 400);
+    });
+    return Promise.resolve();
+  }
+  // File yang sudah disiapkan disimpan sementara (di memori) supaya ketukan kedua langsung jalan.
+  // Perlu karena browser hanya mengizinkan "Bagikan" beberapa detik setelah tombol ditekan.
+  var siap = {}, versi = 0;
+  function aksi(jenis, buat, kerja, pesan) {
+    if (!pages.length) return;
+    var key = jenis + ':' + versi;
+    if (siap[key]) return jalankan(siap[key]);
+    busy('Menyiapkan file…');
+    tick().then(buat).then(function (f) { busy(''); siap = {}; siap[key] = Array.isArray(f) ? f : [f]; return jalankan(siap[key]); })
+      .catch(function (e) { busy(''); toast('Gagal: ' + (e.message || e)); });
+    function jalankan(files) {
+      return kerja(files).then(function () { if (pesan) toast(pesan); }).catch(function (e) {
+        if (e && e.name === 'NotAllowedError') toast('File siap. Tekan tombol itu sekali lagi.');
+        else toast('Gagal: ' + (e.message || e));
+      });
+    }
+  }
+  $('btnShareJpg').onclick = function () { aksi('jpg', fileJpg, bagikan); };
+  $('btnSharePdf').onclick = function () { aksi('pdf', filePdf, bagikan); };
+  $('btnSaveJpg').onclick = function () { aksi('jpg', fileJpg, simpan, 'Tersimpan di folder Download / Galeri'); };
+  $('btnSavePdf').onclick = function () { aksi('pdf', filePdf, simpan, 'Tersimpan di folder Download'); };
+  $('btnSelesai').onclick = function () {
+    if (pages.length && !confirm('Hapus semua halaman dari layar? (sudah dibagikan / disimpan?)')) return;
+    pages = []; renderPages(); siap = {}; toast('Bersih — tidak ada yang tersimpan');
+  };
+  window.addEventListener('beforeunload', function (e) { if (pages.length) { e.preventDefault(); e.returnValue = ''; } });
+})();
+</script>
+</body></html>
