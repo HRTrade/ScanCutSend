@@ -42,7 +42,7 @@
 </style>
 </head>
 <body>
-<header><h1>✂️ Potong <small>v1.2</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
+<header><h1>✂️ Potong <small>v1.3</small></h1><span class="muted" style="color:#ccfbf1" id="engStat">memuat mesin…</span></header>
 <div class="wrap">
 
   <!-- BERANDA -->
@@ -75,7 +75,7 @@
     <div class="viewer" id="cropWrap"><canvas id="cropCv"></canvas><canvas id="loupe" width="220" height="220"></canvas></div>
     <div class="chips hide" id="cands"></div>
     <div class="warn hide" id="cropWarn"></div>
-    <div class="row"><button class="btn grey sm" id="btnCropPutar">↻ Putar</button><button class="btn grey sm" id="btnCropPenuh">⛶ Penuh</button><button class="btn grey sm" id="btnCropBatal">✕ Batal</button></div>
+    <div class="row"><button class="btn grey sm" id="btnCropPutar">↺ Putar</button><button class="btn grey sm" id="btnCropPenuh">⛶ Penuh</button><button class="btn grey sm" id="btnCropBatal">✕ Batal</button></div>
     <button class="btn" id="btnCropLanjut">Lanjut ›</button>
   </div>
 
@@ -86,7 +86,7 @@
       <button data-f="asli">Asli</button><button data-f="bersih" class="on">✨ Bersih</button><button data-f="abu">Abu-abu</button><button data-f="bw">Hitam-putih</button>
     </div>
     <img id="hasil" alt="">
-    <div class="row"><button class="btn grey sm" id="btnFPutar">↻ Putar</button><button class="btn grey sm" id="btnFKembali">‹ Atur sudut</button></div>
+    <div class="row"><button class="btn grey sm" id="btnFPutar">↺ Putar</button><button class="btn grey sm" id="btnFKembali">‹ Atur sudut</button></div>
     <button class="btn" id="btnFSimpan">✓ Tambahkan</button>
   </div>
 </div>
@@ -892,7 +892,8 @@ function enhance(x, w, h, bw) {
   $('cropCv').addEventListener('pointerup', lepas); $('cropCv').addEventListener('pointercancel', lepas);
 
   function putar90(s) { var c = kanvas(s.height, s.width), x = c.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(s, 0, 0); return c; }
-  $('btnCropPutar').onclick = function () { edit.orig = putar90(edit.orig); edit.pts = inset(edit.orig); deteksi().then(function () { busy(''); renderCands(); renderWarn(); layoutCrop(); }); };
+  function putarKiri(s) { var c = kanvas(s.height, s.width), x = c.getContext('2d'); x.translate(0, c.height); x.rotate(-Math.PI / 2); x.drawImage(s, 0, 0); return c; }
+  $('btnCropPutar').onclick = function () { edit.orig = putarKiri(edit.orig); edit.pts = inset(edit.orig); deteksi().then(function () { busy(''); renderCands(); renderWarn(); layoutCrop(); }); };
   $('btnCropPenuh').onclick = function () { var o = edit.orig; edit.pts = [{ x: 0, y: 0 }, { x: o.width, y: 0 }, { x: o.width, y: o.height }, { x: 0, y: o.height }]; edit.ci = -1; renderCands(); gambar(); };
   $('btnCropBatal').onclick = function () { lanjutAntre(); };
 
@@ -921,7 +922,7 @@ function enhance(x, w, h, bw) {
   };
   function olah() {   // hasil akhir = flat + putar + warna
     var c = edit.flat;
-    for (var i = 0; i < edit.rot; i++) c = putar90(c);
+    for (var i = 0; i < edit.rot; i++) c = putarKiri(c);
     var out = kanvas(c.width, c.height), x = out.getContext('2d', { willReadFrequently: true });
     x.drawImage(c, 0, 0);
     if (edit.filter === 'abu') {
